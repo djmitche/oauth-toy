@@ -7,8 +7,8 @@ import urlparse
 import json
 import urllib
 
-CLIENT_ID = "dSMy1vk5yULBcbIWPDaarSAgSdgkALTQsDU3mCza"
-CLIENT_SECRET = "gwa9qEajR2d1Rysy6iSvFM4uz8BqH9wi5kEoAvCveVkuAibQQN"
+CLIENT_ID = "JxDVCOOZyG1foRLEY1NlBATaa4JuKbd3414BHuIN"
+CLIENT_SECRET = "TpyxzOIPs6k9xr0Y5o9EbqjHioun3BAJmYlMxZIeYxCSNnB7v0"
 REDIRECT_URI = 'http://172.16.1.22:8011/authorized'
 BASE_URL = 'http://euclid.r.igoro.us:8010/'
 
@@ -85,7 +85,7 @@ def test_success():
         'code': authorization_code,
         'redirect_uri': REDIRECT_URI,
         'client_id': CLIENT_ID
-    })
+    }, auth=(CLIENT_ID, CLIENT_SECRET))
     result = resp.json()
     assert result['token_type'].lower() == 'bearer'
     access_token = result['access_token']
@@ -94,6 +94,7 @@ def test_success():
     # access the resource
     resp = requests.get(BASE_URL + 'api/me',
             headers={'Authorization': 'Bearer %s' % access_token})
+    print resp.text
     print resp.json()
 
     # refresh the token
@@ -103,7 +104,7 @@ def test_success():
         'refresh_token': refresh_token,
         'scope': 'email',
         'client_id': CLIENT_ID, # XXX not required by spec
-    })
+    }, auth=(CLIENT_ID, CLIENT_SECRET))
     result = resp.json()
     print result
     assert result['token_type'].lower() == 'bearer'
