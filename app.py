@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from datetime import datetime, timedelta
-import json
+import logging
 import base64
 from flask import Flask
 from flask import Response
@@ -19,6 +19,8 @@ app.config.update({
     'SQLALCHEMY_DATABASE_URI': 'sqlite:///db.sqlite',
 })
 db = SQLAlchemy(app)
+
+log = logging.getLogger("app")
 
 
 class User(db.Model):
@@ -343,17 +345,14 @@ def client():
 
 
 def load_client(client_id):
-    print("load_client%r" % ((client_id,),))
     return Client.query.filter_by(client_id=client_id).first()
 
 
 def load_grant(client_id, code):
-    print("load_grant%r" % ((client_id, code,),))
     return Grant.query.filter_by(client_id=client_id, code=code).first()
 
 
 def save_grant(client_id, code, request, *args, **kwargs):
-    print("save_grant%r" % ((client_id, code, request, args, kwargs,),))
     # decide the expires time yourself
     expires_at = datetime.utcnow() + timedelta(seconds=100)
     grant = Grant(
@@ -370,13 +369,11 @@ def save_grant(client_id, code, request, *args, **kwargs):
 
 
 def delete_grant(client_id, code):
-    print("delete_grant%r" % ((client_id, code,),))
     Grant.query.filter_by(client_id=client_id, code=code).delete()
     db.session.commit()
 
 
 def load_token(access_token=None, refresh_token=None):
-    print("load_token%r" % ((access_token, refresh_token),))
     if access_token:
         return Token.query.filter_by(access_token=access_token).first()
     elif refresh_token:
@@ -384,7 +381,6 @@ def load_token(access_token=None, refresh_token=None):
 
 
 def save_token(token, request, *args, **kwargs):
-    print("save_token%r" % ((token, request, args, kwargs),))
     toks = Token.query.filter_by(
         client_id=request.client.client_id,
         user_id=request.user.id
@@ -422,6 +418,7 @@ def access_token():
 def authorize(*args, **kwargs):
     user = current_user()
     if not user:
+        log.warning("no user; redirecting to /")
         return redirect('/') # TODO: with params or session set up to link back here
     uri, http_method, body, headers = extract_params()
     if request.method == 'GET':

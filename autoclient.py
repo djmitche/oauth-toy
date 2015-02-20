@@ -4,7 +4,7 @@
 
 import requests
 import urlparse
-import json
+import uuid
 import urllib
 
 CLIENT_ID = "JxDVCOOZyG1foRLEY1NlBATaa4JuKbd3414BHuIN"
@@ -12,6 +12,37 @@ CLIENT_SECRET = "TpyxzOIPs6k9xr0Y5o9EbqjHioun3BAJmYlMxZIeYxCSNnB7v0"
 REDIRECT_URI = 'http://172.16.1.22:8011/authorized'
 BASE_URL = 'http://euclid.r.igoro.us:8010/'
 
+
+class Client(object):
+
+    def __init__(self):
+        self.client_id = CLIENT_ID
+        self.client_secret = CLIENT_SECRET
+        self.redirect_uri = REDIRECT_URI
+        self.transactions = {}
+
+    def connect(self):
+        """Connect the client to the application; returns the URL the client
+        redirects to."""
+        state = uuid.uuid4()
+        self.transactions[state] = None
+
+        url = BASE_URL + 'oauth/authorize'
+        url += '?response_type=code'
+        url += '&client_id=' + urllib.quote_plus(self.client_id)
+        url += '&redirect_uri=' + \
+            urllib.quote_plus(self.redirect_url)
+        url += '&scope=email'
+        url += '&state=' + urllib.quote_plus(state)
+        return url
+
+    def browser_redirected(self, url):
+        """The browser was redirected back to the client at this URL."""
+        assert url.startswith(REDIRECT_URI)
+        query = get_query_as_dict(url)
+        assert query['state'] in self.transactions
+        del self.transactions[query['state']]
+        authorization_code = query['code']
 
 class Browser(object):
 
@@ -73,10 +104,6 @@ def test_success():
     post_args['confirm'] = 'yes'
     r = b.post(post_base, post_args, allow_redirects=False)
     redir = r.headers['Location']
-    assert redir.startswith(REDIRECT_URI)
-    query = get_query_as_dict(redir)
-    assert query['state'] == state
-    authorization_code = query['code']
 
     # D: access token request (4.1.3)
     # XXX this should require client auth!!!
